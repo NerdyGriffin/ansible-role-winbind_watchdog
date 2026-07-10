@@ -61,3 +61,7 @@
     name: winbind-watchdog.timer
     enabled: true
     state: started
+  # Skip under --check: the unit files are only simulated in check mode, so
+  # systemd can't find the timer to enable it on a host that doesn't already
+  # have it. The copy/template tasks above still report the intended changes.
+  when: not ansible_check_mode
