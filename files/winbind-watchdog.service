@@ -1,0 +1,13 @@
+[Unit]
+Description=Winbind health probe and recovery
+Documentation=https://github.com/NerdyGriffin/ansible-role-winbind_watchdog
+After=winbind.service
+Wants=winbind.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/winbind-watchdog.sh
+# Probe timeout + recovery headroom. Keep well under the timer interval.
+TimeoutStartSec=90
+StandardError=journal
+Nice=10

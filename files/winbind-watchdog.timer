@@ -1,0 +1,14 @@
+[Unit]
+Description=Run winbind-watchdog periodically
+Documentation=https://github.com/NerdyGriffin/ansible-role-winbind_watchdog
+Requires=winbind-watchdog.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=3min
+AccuracySec=30s
+# Don't replay missed runs on boot — a stale probe is meaningless
+Persistent=false
+
+[Install]
+WantedBy=timers.target

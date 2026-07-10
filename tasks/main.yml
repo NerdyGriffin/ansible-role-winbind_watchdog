@@ -1,0 +1,63 @@
+---
+# nerdygriffin.winbind_watchdog — main tasks
+#
+# Deploys a systemd timer that probes winbind health every few minutes and
+# force-recovers it (pkill -9 winbindd + kinit -k + restart) on failure.
+# Two probes: `wbinfo -t` (trust, always on) and an optional idmap probe
+# against winbind_watchdog_idmap_probe_user (catches idmap_ad failures where
+# `wbinfo -t` still passes — hang OR fast-fail).
+
+- name: End host play when the role is disabled
+  ansible.builtin.meta: end_host
+  when: not (winbind_watchdog_manage | bool)
+
+- name: Install the watchdog script
+  ansible.builtin.copy:
+    src: winbind-watchdog.sh
+    dest: "{{ winbind_watchdog_script_path }}"
+    mode: "0755"
+    owner: root
+    group: root
+
+- name: Install the systemd service unit
+  ansible.builtin.copy:
+    src: winbind-watchdog.service
+    dest: "{{ winbind_watchdog_unit_dir }}/winbind-watchdog.service"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Reload systemd
+
+- name: Install the systemd timer unit
+  ansible.builtin.copy:
+    src: winbind-watchdog.timer
+    dest: "{{ winbind_watchdog_unit_dir }}/winbind-watchdog.timer"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Reload systemd
+
+- name: Install the logrotate config
+  ansible.builtin.copy:
+    src: winbind-watchdog.logrotate
+    dest: /etc/logrotate.d/winbind-watchdog
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: Render the watchdog configuration
+  ansible.builtin.template:
+    src: winbind-watchdog.conf.j2
+    dest: "{{ winbind_watchdog_conf_path }}"
+    mode: "0644"
+    owner: root
+    group: root
+
+- name: Reload systemd before touching the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the watchdog timer
+  ansible.builtin.systemd:
+    name: winbind-watchdog.timer
+    enabled: true
+    state: started

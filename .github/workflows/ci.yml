@@ -1,0 +1,38 @@
+---
+name: CI
+'on':
+  pull_request:
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    working-directory: 'nerdygriffin.winbind_watchdog'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the codebase.
+        uses: actions/checkout@v4
+        with:
+          path: 'nerdygriffin.winbind_watchdog'
+
+      - name: Set up Python 3.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies.
+        run: pip3 install yamllint ansible-lint
+
+      - name: Lint YAML.
+        run: yamllint .
+
+      - name: Lint Ansible.
+        run: ansible-lint .
+
+      - name: Shellcheck the watchdog script.
+        run: shellcheck files/winbind-watchdog.sh

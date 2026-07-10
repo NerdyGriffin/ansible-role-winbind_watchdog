@@ -1,0 +1,41 @@
+---
+# nerdygriffin.winbind_watchdog — role defaults
+# All variables use flat role-prefixed names per Galaxy convention.
+
+# Whether this role does anything at all. Set false to skip on specific hosts.
+winbind_watchdog_manage: true
+
+# Probe timeout (seconds). `wbinfo -t` normally returns in <1s; anything
+# longer than this is treated as a hang.
+winbind_watchdog_probe_timeout: 10
+
+# Seconds to wait after `systemctl restart winbind` before re-probing.
+winbind_watchdog_recovery_grace: 3
+
+# Kerberos machine principal used by the recovery `kinit -k`. Empty =
+# auto-derive as "<SHORTHOSTNAME>$@<default_realm from /etc/krb5.conf>".
+# Set explicitly only if the host joined under a non-default sAMAccountName.
+winbind_watchdog_machine_principal: ""
+
+# Kerberos realm. Only consulted when winbind_watchdog_machine_principal is
+# empty AND /etc/krb5.conf has no default_realm.
+winbind_watchdog_realm: ""
+
+# When true the watchdog logs what recovery WOULD do without acting.
+winbind_watchdog_dry_run: false
+
+# Optional mode-2 probe — a known-resolvable AD account in 'DOMAIN\user' form.
+# Enables the second probe (`getent passwd`) that catches idmap_ad failures
+# where `wbinfo -t` still passes. Empty = disabled (trust-only detection).
+# This is a SITE-SPECIFIC value; set it in inventory/playbook, not here.
+winbind_watchdog_idmap_probe_user: ""
+
+# Fast-fail cooldown (seconds). See files/winbind-watchdog.sh: guards against
+# a restart loop when winbind_watchdog_idmap_probe_user is genuinely
+# misconfigured. 0 disables fast-fail recovery (timeout-only mode-2).
+winbind_watchdog_idmap_fastfail_cooldown: 3600
+
+# Install paths / file identity. Rarely overridden.
+winbind_watchdog_script_path: /usr/local/sbin/winbind-watchdog.sh
+winbind_watchdog_unit_dir: /etc/systemd/system
+winbind_watchdog_conf_path: /etc/winbind-watchdog.conf

@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+# nerdygriffin.winbind_watchdog — sourced as bash by winbind-watchdog.sh.
+# Edit the role's winbind_watchdog_* variables, not this file.
+
+PROBE_TIMEOUT={{ winbind_watchdog_probe_timeout }}
+RECOVERY_GRACE={{ winbind_watchdog_recovery_grace }}
+{% if winbind_watchdog_machine_principal | length > 0 %}
+MACHINE_PRINCIPAL='{{ winbind_watchdog_machine_principal }}'
+{% endif %}
+{% if winbind_watchdog_realm | length > 0 %}
+REALM='{{ winbind_watchdog_realm }}'
+{% endif %}
+DRY_RUN={{ 1 if winbind_watchdog_dry_run else 0 }}
+IDMAP_PROBE_USER='{{ winbind_watchdog_idmap_probe_user }}'
+IDMAP_FASTFAIL_COOLDOWN={{ winbind_watchdog_idmap_fastfail_cooldown }}
