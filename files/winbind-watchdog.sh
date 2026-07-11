@@ -18,7 +18,7 @@
 #     couldn't bind LDAP for SID->UID mapping.
 #   - Mode 2b — idmap_ad path FAST-FAILS while RPC stays green: `wbinfo -t`
 #     succeeds but a KNOWN-good account resolves empty/error *immediately*
-#     (e.g. WBC_ERR_DOMAIN_NOT_FOUND). Real incident 2026-07-10 on hl-fs44:
+#     (e.g. WBC_ERR_DOMAIN_NOT_FOUND). Observed in the wild:
 #     `wbinfo -t`/`wbinfo -P` green and all DC ports open, yet `id`, `wbinfo -i`,
 #     `wbinfo -u`, `wbinfo -n`, and `getent passwd/group` all returned empty
 #     fast; smbd spammed "token_contains_name: lookup_name '...' failed
@@ -51,7 +51,7 @@ MACHINE_PRINCIPAL=""   # auto-detected if empty
 REALM=""               # auto-detected from /etc/krb5.conf if empty
 DRY_RUN=0
 # Optional second probe — exercises full nsswitch (idmap_ad -> LDAP). Set to
-# a known-resolvable AD account (e.g. 'NERDYGRIFFIN\christian.admin') to
+# a known-resolvable AD account (e.g. 'EXAMPLE\svc-probe') to
 # catch mode-2 failures where wbinfo -t passes but SID<->UID/name lookups
 # fail. Empty (default) = disabled, behaves like the trust-only watchdog.
 IDMAP_PROBE_USER=""
