@@ -65,6 +65,18 @@ IDMAP_PROBE_USER=""
 # to timeout-only mode-2 detection).
 IDMAP_FASTFAIL_COOLDOWN=3600
 
+# Diagnostic capture. On each recovery, snapshot the (still-wedged) winbind/AD
+# state to a timestamped, gzipped file in CAPTURE_DIR so a recurrence can be
+# analysed or reported upstream. Storage is bounded: only the newest
+# CAPTURE_KEEP snapshots are kept, each command capped to CAPTURE_MAX_LINES
+# lines. Every winbind/net probe is CAPTURE_TIMEOUT-bounded because a wedged
+# winbind hangs the very tools we query. Set CAPTURE_DEBUG=0 to disable.
+CAPTURE_DEBUG=1
+CAPTURE_DIR="/var/log/winbind-watchdog.d"
+CAPTURE_KEEP=20
+CAPTURE_MAX_LINES=200
+CAPTURE_TIMEOUT=5
+
 # shellcheck disable=SC1090
 [[ -f "$CONF" ]] && . "$CONF"
 
@@ -148,6 +160,57 @@ probe_idmap() {
     return 0
 }
 
+# Keep only the newest CAPTURE_KEEP snapshots so unattended recoveries can't
+# fill the disk. find+mtime (not ls) to stay robust and shellcheck-clean.
+prune_captures() {
+    local -a files=()
+    local i
+    mapfile -t files < <(find "$CAPTURE_DIR" -maxdepth 1 -type f -name 'winbind-debug-*.log*' \
+        -printf '%T@\t%p\n' 2>/dev/null | sort -rn | cut -f2-)
+    for (( i = CAPTURE_KEEP; i < ${#files[@]}; i++ )); do
+        rm -f "${files[$i]}" 2>/dev/null
+    done
+}
+
+# Snapshot the current (wedged) winbind/AD state to a gzipped file for later
+# analysis. Best-effort: every winbind/net probe is timeout-wrapped (a wedged
+# winbind hangs its own tools) and no failure here blocks recovery. Captures no
+# secrets — principal names, uid/gid, and log excerpts only.
+capture_debug() {
+    (( CAPTURE_DEBUG )) || return 0
+    mkdir -p "$CAPTURE_DIR" 2>/dev/null || return 0
+    chmod 0750 "$CAPTURE_DIR" 2>/dev/null || true
+    local ts f t="$CAPTURE_TIMEOUT" n="$CAPTURE_MAX_LINES"
+    ts=$(date '+%Y%m%d-%H%M%S')
+    f="$CAPTURE_DIR/winbind-debug-$ts.log"
+    {
+        echo "# winbind-watchdog debug snapshot — $ts — $(hostname -s)"
+        echo "# trigger: $*"
+        echo "## systemctl status winbind"
+        timeout 10 systemctl --no-pager --full status winbind 2>&1 | head -n "$n"
+        echo "## wbinfo -t / -p / -P"
+        timeout "$t" wbinfo -t 2>&1; timeout "$t" wbinfo -p 2>&1; timeout "$t" wbinfo -P 2>&1
+        echo "## net ads testjoin"
+        timeout "$t" net ads testjoin 2>&1
+        echo "## klist (machine credential cache)"
+        timeout 10 klist 2>&1
+        if [[ -n "$IDMAP_PROBE_USER" ]]; then
+            echo "## idmap probe user: $IDMAP_PROBE_USER"
+            timeout "$t" id "$IDMAP_PROBE_USER" 2>&1
+            timeout "$t" wbinfo -i "$IDMAP_PROBE_USER" 2>&1
+            timeout "$t" wbinfo -n "$IDMAP_PROBE_USER" 2>&1
+            timeout "$t" getent passwd "$IDMAP_PROBE_USER" 2>&1
+        fi
+        echo "## recent winbind journal (last $n)"
+        timeout 10 journalctl -u winbind --no-pager -n "$n" 2>&1
+        echo "## recent smbd journal (last $n)"
+        timeout 10 journalctl -u smbd -u smb --no-pager -n "$n" 2>&1
+    } >"$f" 2>&1
+    if gzip -f "$f" 2>/dev/null; then f="$f.gz"; fi
+    log "captured debug snapshot: $f"
+    prune_captures
+}
+
 recover() {
     log "recovery: starting (principal=$MACHINE_PRINCIPAL)"
     if (( DRY_RUN )); then
@@ -189,6 +252,7 @@ main() {
     (( ! primary_ok )) && log "primary probe failed: '${PROBE_CMD[*]}' did not return success within ${PROBE_TIMEOUT}s"
     (( idmap_rc != 0 )) && log "idmap probe failed (rc=$idmap_rc; see prior log line for details)"
 
+    capture_debug "primary_ok=$primary_ok idmap_rc=$idmap_rc"
     recover || { log "recovery: aborted"; exit 1; }
 
     local primary_ok2 idmap_rc2

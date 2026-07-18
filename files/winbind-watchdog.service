@@ -7,7 +7,8 @@ Wants=winbind.service
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/winbind-watchdog.sh
-# Probe timeout + recovery headroom. Keep well under the timer interval.
-TimeoutStartSec=90
+# Probe + on-recovery debug-capture + recovery headroom (a wedged winbind can
+# make each timeout-wrapped probe wait its full budget). Keep under the timer interval.
+TimeoutStartSec=120
 StandardError=journal
 Nice=10

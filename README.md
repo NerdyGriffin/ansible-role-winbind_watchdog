@@ -63,6 +63,11 @@ until the operator fixes the probe account.
 | `winbind_watchdog_machine_principal` | `""` | Override the `kinit -k` principal (else auto-derived). |
 | `winbind_watchdog_realm` | `""` | Realm, if `default_realm` is unset in `/etc/krb5.conf`. |
 | `winbind_watchdog_dry_run` | `false` | Log what recovery would do without acting. |
+| `winbind_watchdog_capture_debug` | `true` | Snapshot winbind/AD state to a file on each recovery. |
+| `winbind_watchdog_capture_dir` | `/var/log/winbind-watchdog.d` | Where snapshots are written. |
+| `winbind_watchdog_capture_keep` | `20` | Newest N snapshots kept; older ones pruned (storage bound). |
+| `winbind_watchdog_capture_max_lines` | `200` | Per-command output cap in each snapshot. |
+| `winbind_watchdog_capture_timeout` | `5` | Per-probe timeout for capture (a wedged winbind hangs its own tools). |
 
 ## Example
 
@@ -87,6 +92,11 @@ until the operator fixes the probe account.
 - Event log: `/var/log/winbind-watchdog.log` (rotated).
 - Timer state: `systemctl list-timers winbind-watchdog.timer`.
 - Manual one-shot (same as the timer): `sudo /usr/local/sbin/winbind-watchdog.sh`.
+- Debug snapshots (one per recovery): `winbind_watchdog_capture_dir` holds
+  timestamped `winbind-debug-*.log.gz` files capturing `wbinfo`/`net ads
+  testjoin`/`klist`/idmap-probe/journal state at the moment of the wedge — the
+  raw material for diagnosing or reporting a recurrence upstream. Self-rotating
+  (newest `winbind_watchdog_capture_keep` retained), so it can't fill the disk.
 
 ## License
 

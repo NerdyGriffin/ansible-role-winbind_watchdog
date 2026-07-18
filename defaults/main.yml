@@ -35,6 +35,19 @@ winbind_watchdog_idmap_probe_user: ""
 # misconfigured. 0 disables fast-fail recovery (timeout-only mode-2).
 winbind_watchdog_idmap_fastfail_cooldown: 3600
 
+# Diagnostic capture: on each recovery, snapshot the (still-wedged) winbind/AD
+# state to a gzipped, self-rotating file for later analysis / upstream reports.
+winbind_watchdog_capture_debug: true
+winbind_watchdog_capture_dir: /var/log/winbind-watchdog.d
+# Storage bound: only the newest N snapshots are kept (older ones pruned).
+winbind_watchdog_capture_keep: 20
+# Per-command output cap (lines) — keeps each snapshot small.
+winbind_watchdog_capture_max_lines: 200
+# Per-probe timeout (seconds) — a wedged winbind hangs its own tools, so each
+# capture probe is bounded. Keep the product of probes x this well under the
+# unit's TimeoutStartSec.
+winbind_watchdog_capture_timeout: 5
+
 # Install paths / file identity. Rarely overridden.
 winbind_watchdog_script_path: /usr/local/sbin/winbind-watchdog.sh
 winbind_watchdog_unit_dir: /etc/systemd/system
