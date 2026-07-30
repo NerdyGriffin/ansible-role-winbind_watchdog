@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.runtime/
+*.retry
+*.swp
+*~
+.DS_Store
+.vscode/
+.idea/
+.ansible/

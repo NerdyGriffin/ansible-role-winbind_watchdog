@@ -1,0 +1,39 @@
+---
+name: CI
+
+'on':
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the codebase.
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install test dependencies.
+        run: pip3 install yamllint ansible-lint pytest
+
+      - name: Lint YAML.
+        run: yamllint .
+
+      - name: Run the rule unit tests.
+        run: pytest
+
+      # A rule that fails to import is silently absent rather than an error, so
+      # prove ansible-lint actually loads both of them.
+      - name: Verify the rules load.
+        run: |
+          ansible-lint -R -r . -L --nocolor | tee /tmp/rules.txt
+          grep -q 'become-first' /tmp/rules.txt
+          grep -q 'no-host-os-vars' /tmp/rules.txt
