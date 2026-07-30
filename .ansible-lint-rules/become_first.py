@@ -70,6 +70,7 @@ class BecomeFirstRule(AnsibleLintRule, TransformMixin):
     id = "become-first"
     severity = "LOW"
     tags = ["formatting"]
+    version_changed = "1.0.0"
     needs_raw_task = True
     _ids = {
         "become-first[task]": "become (and become_*) should come right after name",
