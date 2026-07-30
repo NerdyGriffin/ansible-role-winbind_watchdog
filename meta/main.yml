@@ -2,6 +2,7 @@
 galaxy_info:
   author: nerdygriffin
   role_name: winbind_watchdog
+  namespace: nerdygriffin
   description: >-
     Systemd timer that detects and recovers hung or degraded winbind
     idmap_ad/trust state on AD member hosts (pkill -9 winbindd + kinit -k

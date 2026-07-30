@@ -16,3 +16,8 @@ rules:
   octal-values:
     forbid-implicit-octal: true
     forbid-explicit-octal: true
+
+# Vendored subtree — see exclude_paths in .ansible-lint for why it is not
+# ours to lint or reformat.
+ignore: |
+  .ansible-lint-rules/

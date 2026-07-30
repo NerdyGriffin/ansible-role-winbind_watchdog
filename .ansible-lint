@@ -1,3 +1,16 @@
 ---
+# Shared custom rules, vendored via git subtree from
+# https://github.com/NerdyGriffin/ansible-lint-rules — `become-first` requires
+# become/become_* to sort directly after name. Update with:
+#   git subtree pull --prefix .ansible-lint-rules lint-rules main --squash
+rulesdir:
+  - .ansible-lint-rules
+
+exclude_paths:
+  # The vendored rules are another repo's content with its own CI. Linting them
+  # here adds nothing, and `ansible-lint --fix` would rewrite them, which makes
+  # the next `git subtree pull` conflict against edits we never meant to make.
+  - .ansible-lint-rules/
+
 warn_list:
   - role-name[path]
